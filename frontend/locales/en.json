@@ -1,0 +1,46 @@
+{
+  "nav": {
+    "home": "Home",
+    "categories": "Categories",
+    "aboutBlog": "About This Blog",
+    "aboutMe": "About Me",
+    "noCategories": "No categories yet"
+  },
+  "home": {
+    "latestPosts": "Latest Posts",
+    "loading": "Loading posts...",
+    "noPosts": "No posts published yet."
+  },
+  "pagination": {
+    "previous": "Previous",
+    "next": "Next",
+    "page": "Page {page}"
+  },
+  "post": {
+    "backToBlog": "← Back to Blog",
+    "readMore": "Read More →",
+    "by": "by",
+    "minRead": "min read",
+    "notFound": "Post not found"
+  },
+  "category": {
+    "breadcrumb": "Blog",
+    "noPosts": "No posts in this category.",
+    "loading": "Loading posts..."
+  },
+  "tag": {
+    "breadcrumb": "Blog",
+    "noPosts": "No posts with this tag.",
+    "loading": "Loading posts..."
+  },
+  "toc": {
+    "title": "Table of Contents"
+  },
+  "footer": {
+    "text": "© {year} No Hype, Just Vibe Blog - FakeJack - Powered by Notion."
+  },
+  "language": {
+    "label": "Language",
+    "switch": "Switch language"
+  }
+}
