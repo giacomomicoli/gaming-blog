@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-03-19
+
+### Fixed
+
+#### Frontend
+
+- Fix client-side API base URL not taking effect in production: change default
+  `NUXT_PUBLIC_BACKEND_URL` to empty string so it is baked into the client bundle
+  at build time, ensuring relative `/api/...` paths work without runtime override
+- Remove unnecessary `NUXT_PUBLIC_BACKEND_URL` env var from production Docker Compose
+
 ## [1.0.2] - 2026-03-19
 
 ### Fixed
