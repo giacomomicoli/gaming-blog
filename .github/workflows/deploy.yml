@@ -55,15 +55,17 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           envs: GITHUB_TOKEN,IMAGE_TAG
           script: |
+            set -e
             echo "$GITHUB_TOKEN" | docker login ghcr.io -u github-actions --password-stdin
             cd /var/www/blog
-            git pull origin main
+            git fetch origin main
+            git reset --hard origin/main
             export IMAGE_TAG=$IMAGE_TAG
+            echo "Deploying IMAGE_TAG=$IMAGE_TAG"
             docker stack deploy --with-registry-auth \
               -c docker/docker-compose.yml \
               -c docker/docker-compose.prod.yml \
               blog
-            echo "Deployed with IMAGE_TAG=$IMAGE_TAG"
             docker stack services blog
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
