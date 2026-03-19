@@ -220,7 +220,70 @@ Secrets are mounted at `/run/secrets/{name}` inside the container. The backend's
 - Security headers: nosniff, deny framing, strict referrer, no server header
 - Routing: `/api/*` and `/health` → backend:8000, everything else → frontend:3000
 
+## CI/CD Pipeline
+
+Production deployments are automated via GitHub Actions. Two workflows live in `.github/workflows/`:
+
+### CI Workflow (`ci.yml`)
+
+Runs on every push and pull request to `dev`, `release`, and `main`. Three parallel jobs:
+
+| Job | Runner | Steps |
+|-----|--------|-------|
+| **lint** | Python 3.12 | `ruff check src/` + `ruff format --check src/` |
+| **test-backend** | Python 3.12 + uv | `uv pip install --system ".[dev]"` then `pytest tests/ -v` |
+| **test-frontend** | Node 20 | `npm ci` then `npx vitest run` |
+
+No Docker containers or service dependencies needed — backend tests use `fakeredis` (in-process),
+frontend tests use `happy-dom`.
+
+### Deploy Workflow (`deploy.yml`)
+
+Runs on push to `main` only. Two sequential jobs:
+
+**Job 1: `build-and-push`**
+1. Checks out the repository
+2. Sets up Docker Buildx
+3. Logs in to ghcr.io using the automatic `GITHUB_TOKEN`
+4. Builds and pushes backend image with tags `latest` + git SHA
+5. Builds and pushes frontend image with tags `latest` + git SHA
+6. Uses GitHub Actions cache (`type=gha`) for Docker layer caching
+
+**Job 2: `deploy`** (depends on `build-and-push`)
+1. SSHs into the VPS using `appleboy/ssh-action`
+2. Logs in to ghcr.io on the VPS (using forwarded `GITHUB_TOKEN`)
+3. Pulls latest code: `git pull origin main`
+4. Deploys stack with `IMAGE_TAG` set to the git SHA:
+   `docker stack deploy --with-registry-auth -c docker-compose.yml -c docker-compose.prod.yml blog`
+
+### Container Registry
+
+Images are stored in GitHub Container Registry (ghcr.io):
+
+| Image | URL |
+|-------|-----|
+| Backend | `ghcr.io/giacomomicoli/gaming-blog/backend` |
+| Frontend | `ghcr.io/giacomomicoli/gaming-blog/frontend` |
+
+Each image is tagged with both `latest` and the full git commit SHA for traceability.
+The base compose file uses `${IMAGE_TAG:-latest}` so local dev defaults to `latest`
+while CI deploys use the exact commit SHA.
+
+### Required GitHub Secrets
+
+Configure these in the repository settings before the first deploy:
+
+| Secret | Value |
+|--------|-------|
+| `VPS_SSH_KEY` | SSH private key for the VPS |
+| `VPS_HOST` | VPS IP address (`91.99.20.92`) |
+| `VPS_USER` | SSH user (`fakejack`) |
+
+`GITHUB_TOKEN` is provided automatically by GitHub Actions — no PAT required.
+
 ## Deployment Script (`deploy.sh`)
+
+Manual / emergency deploy script. Normal deploys go through the CI/CD pipeline above.
 
 ```bash
 #!/usr/bin/env bash
@@ -228,14 +291,13 @@ set -euo pipefail
 ```
 
 1. Sources `../.env` file (exits with error if missing)
-2. Builds Docker images: `docker compose -f docker-compose.yml build`
-3. For each secret (`notion_api_key`, `notion_database_id`, `notion_data_source_id`,
+2. For each secret (`notion_api_key`, `notion_database_id`, `notion_data_source_id`,
    `notion_pages_data_source_id`, `cache_invalidate_secret`):
    - Converts lowercase name to uppercase env var
    - Skips with warning if value is empty
    - Removes existing secret (`docker secret rm`, ignores errors)
    - Creates new secret from stdin (`docker secret create`)
-4. Deploys stack: `docker stack deploy -c docker-compose.yml -c docker-compose.prod.yml blog`
+3. Deploys stack: `docker stack deploy --with-registry-auth -c docker-compose.yml -c docker-compose.prod.yml blog`
 
 Docker secrets are immutable — the script removes and recreates them on each deploy.
 
