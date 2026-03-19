@@ -40,6 +40,7 @@ def _color_style(color: str) -> str:
 
 # ── Rich text rendering ────────────────────────────────────
 
+
 def render_rich_text(rich_text_items: list[dict]) -> str:
     """Convert a Notion rich_text array into an HTML string."""
     parts: list[str] = []
@@ -88,6 +89,7 @@ def render_rich_text(rich_text_items: list[dict]) -> str:
 
 # ── File/image URL extraction ───────────────────────────────
 
+
 def _get_file_url(file_obj: dict) -> str:
     """Extract URL from a Notion file object (type: file or external)."""
     ftype = file_obj.get("type", "")
@@ -99,6 +101,7 @@ def _get_file_url(file_obj: dict) -> str:
 
 
 # ── Block renderers ─────────────────────────────────────────
+
 
 def _render_paragraph(block: dict) -> str:
     data = block.get("paragraph", {})
@@ -194,7 +197,9 @@ def _render_image(block: dict) -> str:
     url = escape(_get_file_url(data))
     caption = render_rich_text(data.get("caption", []))
     cap_html = f"<figcaption>{caption}</figcaption>" if caption else ""
-    return f'<figure><img src="{url}" alt="{escape(caption or "")}" loading="lazy">{cap_html}</figure>'
+    return (
+        f'<figure><img src="{url}" alt="{escape(caption or "")}" loading="lazy">{cap_html}</figure>'
+    )
 
 
 def _render_video(block: dict) -> str:
@@ -220,7 +225,9 @@ def _render_embed(block: dict) -> str:
     url = escape(data.get("url", ""))
     caption = render_rich_text(data.get("caption", []))
     cap_html = f"<figcaption>{caption}</figcaption>" if caption else ""
-    return f'<figure><iframe src="{url}" frameborder="0" loading="lazy"></iframe>{cap_html}</figure>'
+    return (
+        f'<figure><iframe src="{url}" frameborder="0" loading="lazy"></iframe>{cap_html}</figure>'
+    )
 
 
 def _render_table(block: dict) -> str:
@@ -281,6 +288,7 @@ def _render_breadcrumb(_block: dict) -> str:
 
 
 # ── Children helper ─────────────────────────────────────────
+
 
 def _render_children(block: dict) -> str:
     children = block.get("children", [])
@@ -359,6 +367,7 @@ def render_blocks(blocks: list[dict]) -> str:
 
 
 # ── Table of contents extraction ────────────────────────────
+
 
 def extract_toc(blocks: list[dict]) -> list[dict]:
     """Extract heading blocks into a flat TOC list."""
