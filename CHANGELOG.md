@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-03-19
+
 ### Added
 
 #### Infrastructure
@@ -16,6 +18,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - GitHub Actions Deploy workflow: build and push Docker images to ghcr.io, deploy to VPS
   via SSH on push to main
 - Docker images published to GitHub Container Registry (ghcr.io) with commit SHA tags
+
+### Fixed
+
+#### Frontend
+
+- Fix empty pages on client-side navigation by adding reactive page key to NuxtPage
+  and making route params reactive in dynamic pages (blog post, category, tag)
+- Fix navbar categories not refreshing on locale switch
 
 ### Changed
 
