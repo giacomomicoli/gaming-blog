@@ -3,17 +3,17 @@ const route = useRoute()
 const { locale } = useI18n()
 const { t } = useI18n()
 const localePath = useLocalePath()
-const tag = route.params.name as string
+const tag = computed(() => route.params.name as string)
 const { getPosts } = useApi()
 const page = ref(1)
 
 const { data, status } = await useAsyncData(
-  `tag-${locale.value}-${tag}`,
-  () => getPosts(locale.value, { tag, page: page.value }),
-  { watch: [page, locale] },
+  `tag-${locale.value}-${tag.value}`,
+  () => getPosts(locale.value, { tag: tag.value, page: page.value }),
+  { watch: [page, locale, tag] },
 )
 
-useHead({ title: `#${tag}` })
+useHead({ title: `#${tag.value}` })
 </script>
 
 <template>

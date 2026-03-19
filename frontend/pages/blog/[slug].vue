@@ -3,11 +3,11 @@ const route = useRoute()
 const { locale } = useI18n()
 const { t } = useI18n()
 const localePath = useLocalePath()
-const slug = route.params.slug as string
+const slug = computed(() => route.params.slug as string)
 const { getPost } = useApi()
 
-const { data: post, error } = await useAsyncData(`post-${locale.value}-${slug}`, () => getPost(locale.value, slug), {
-  watch: [locale],
+const { data: post, error } = await useAsyncData(`post-${locale.value}-${slug.value}`, () => getPost(locale.value, slug.value), {
+  watch: [locale, slug],
 })
 
 if (error.value) {
