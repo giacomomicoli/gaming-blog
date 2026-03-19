@@ -2,7 +2,9 @@
 const { locale, locales, t } = useI18n()
 const localePath = useLocalePath()
 const { getCategories } = useApi()
-const { data: categories } = await useAsyncData(`nav-categories-${locale.value}`, () => getCategories(locale.value))
+const { data: categories } = await useAsyncData(`nav-categories-${locale.value}`, () => getCategories(locale.value), {
+  watch: [locale],
+})
 
 const menuOpen = ref(false)
 const dropdownOpen = ref(false)
