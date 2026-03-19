@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-03-19
+
+### Fixed
+
+#### Infrastructure
+
+- Fix double `/api` prefix on client-side API requests in production causing 404 errors
+  (`NUXT_PUBLIC_BACKEND_URL=/api` + hardcoded `/api/...` paths = `/api/api/...`)
+
 ## [1.0.1] - 2026-03-19
 
 ### Added
