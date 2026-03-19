@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.4] - 2026-03-19
+
+### Fixed
+
+#### Infrastructure
+
+- Fix deploy workflow failing silently when VPS has local file modifications,
+  preventing all code updates from reaching production (`git pull` replaced
+  with `git fetch` + `git reset --hard`; added `set -e` for fail-fast)
+
 ## [1.0.3] - 2026-03-19
 
 ### Fixed
