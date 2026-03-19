@@ -29,6 +29,7 @@ services:
       - /app/.nuxt
     environment:
       - NUXT_THEME=${NUXT_THEME:-yarb-dark}
+      - NUXT_PUBLIC_BACKEND_URL=http://localhost:8000
     entrypoint: ["/app/docker-entrypoint.dev.sh"]
     command: npx nuxt dev --host 0.0.0.0
 
