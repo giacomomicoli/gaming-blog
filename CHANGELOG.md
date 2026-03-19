@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.6] - 2026-03-19
+
+### Fixed
+
+#### Infrastructure
+
+- Fix v1.0.5 not taking effect: Docker Compose environment merge with empty
+  value (`NUXT_PUBLIC_BACKEND_URL=`) did not override the base file's value
+  in `docker stack deploy`; moved `NUXT_PUBLIC_BACKEND_URL=http://localhost:8000`
+  from base `docker-compose.yml` to `docker-compose.dev.yml` so it only exists
+  in the dev environment and is completely absent in production
+
 ## [1.0.5] - 2026-03-19
 
 ### Fixed

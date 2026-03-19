@@ -38,7 +38,6 @@ services:
     env_file: []
     environment:
       - BACKEND_URL=http://backend:8000
-      - NUXT_PUBLIC_BACKEND_URL=
       - NUXT_PUBLIC_SITE_URL=${NUXT_PUBLIC_SITE_URL:-https://gaming.fakejack.dev}
     networks:
       - proxy-net

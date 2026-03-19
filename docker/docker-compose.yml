@@ -30,7 +30,6 @@ services:
       - ../.env
     environment:
       - BACKEND_URL=http://backend:8000
-      - NUXT_PUBLIC_BACKEND_URL=http://localhost:8000
     networks:
       - blog-net
     healthcheck:
