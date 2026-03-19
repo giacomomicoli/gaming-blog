@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+#### Infrastructure
+
+- GitHub Actions CI workflow: lint (ruff), backend tests (pytest), frontend tests (vitest)
+  on push/PR to dev, release, main
+- GitHub Actions Deploy workflow: build and push Docker images to ghcr.io, deploy to VPS
+  via SSH on push to main
+- Docker images published to GitHub Container Registry (ghcr.io) with commit SHA tags
+
+### Changed
+
+#### Infrastructure
+
+- Docker Compose image names changed from local (`blog-backend:latest`) to registry
+  (`ghcr.io/giacomomicoli/gaming-blog/backend:${IMAGE_TAG:-latest}`)
+- `deploy.sh` updated for manual/emergency use only (removed build step, added
+  `--with-registry-auth` flag)
+
 ## [1.0.0] - 2026-03-19
 
 ### Added
