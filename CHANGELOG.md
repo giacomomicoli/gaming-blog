@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.5] - 2026-03-19
+
+### Fixed
+
+#### Infrastructure
+
+- Fix client-side API requests going to `http://localhost:8000` instead of
+  relative `/api/...` in production: the base `docker-compose.yml` sets
+  `NUXT_PUBLIC_BACKEND_URL=http://localhost:8000` (for dev), and the prod
+  compose never overrode it — Nuxt Nitro injects this at runtime into SSR HTML,
+  breaking all client-side navigation (CORS + unreachable host)
+
 ## [1.0.4] - 2026-03-19
 
 ### Fixed
