@@ -19,13 +19,14 @@ Key required variables: `NOTION_API_KEY`, `NOTION_DATABASE_ID`, `NOTION_DATA_SOU
 ## Repository Structure
 
 ```
-├── backend/          # Python FastAPI backend (src/, tests/, Dockerfile)
-├── frontend/         # Nuxt 3 frontend (components, pages, composables, Dockerfile)
-├── docker/           # Compose files (base, dev, prod), Caddyfile, deploy script
-├── docs/             # Architecture and reference documentation
-├── Makefile          # All build/test/lint/deploy commands
-├── .env.example      # Environment template
-└── AGENTS.md         # This file
+├── .github/workflows/ # CI (lint + test) and Deploy (build, push, deploy) pipelines
+├── backend/           # Python FastAPI backend (src/, tests/, Dockerfile)
+├── frontend/          # Nuxt 3 frontend (components, pages, composables, Dockerfile)
+├── docker/            # Compose files (base, dev, prod), Caddyfile, deploy script
+├── docs/              # Architecture and reference documentation
+├── Makefile           # All build/test/lint/deploy commands
+├── .env.example       # Environment template
+└── AGENTS.md          # This file
 ```
 
 ## Git Workflow
@@ -67,6 +68,18 @@ Version bumps follow semver:
 - **Major** (v2.0.0): breaking changes to API contracts or deployment
 - **Minor** (v1.1.0): new features, new endpoints, new components
 - **Patch** (v1.0.1): bug fixes, style fixes, dependency updates
+
+## CI/CD
+
+Two GitHub Actions workflows automate testing and deployment:
+
+- **CI** (`.github/workflows/ci.yml`): Runs lint (ruff), backend tests (pytest), and frontend
+  tests (vitest) on every push/PR to `dev`, `release`, `main`. No Docker required.
+- **Deploy** (`.github/workflows/deploy.yml`): On push to `main`, builds Docker images, pushes
+  to ghcr.io, then SSHs into the VPS to deploy the Swarm stack with the new image tag.
+
+Images are stored at `ghcr.io/giacomomicoli/gaming-blog/{backend,frontend}` and tagged with
+both `latest` and the git commit SHA. See `docs/docker-and-deployment.md` for full details.
 
 ## Build & Run
 

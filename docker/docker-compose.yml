@@ -1,5 +1,6 @@
 services:
   backend:
+    image: ghcr.io/giacomomicoli/gaming-blog/backend:${IMAGE_TAG:-latest}
     build:
       context: ../backend
       dockerfile: Dockerfile
@@ -7,9 +8,6 @@ services:
       - "${BACKEND_PORT:-8000}:8000"
     env_file:
       - ../.env
-    depends_on:
-      redis:
-        condition: service_healthy
     networks:
       - blog-net
     healthcheck:
@@ -20,6 +18,7 @@ services:
       start_period: 10s
 
   frontend:
+    image: ghcr.io/giacomomicoli/gaming-blog/frontend:${IMAGE_TAG:-latest}
     build:
       context: ../frontend
       dockerfile: Dockerfile
@@ -32,9 +31,6 @@ services:
     environment:
       - BACKEND_URL=http://backend:8000
       - NUXT_PUBLIC_BACKEND_URL=http://localhost:8000
-    depends_on:
-      backend:
-        condition: service_healthy
     networks:
       - blog-net
     healthcheck:

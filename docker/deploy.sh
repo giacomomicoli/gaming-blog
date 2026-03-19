@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Manual / emergency deploy script.
+# Normal production deploys are handled by the CI/CD pipeline (.github/workflows/deploy.yml).
 set -euo pipefail
 
 cd "$(dirname "$0")"
@@ -15,10 +17,6 @@ set -a
 source "$ENV_FILE"
 set +a
 
-echo "==> Building Docker images..."
-docker compose -f docker-compose.yml build
-
-echo ""
 echo "==> Creating/updating Docker secrets..."
 for secret in notion_api_key notion_database_id notion_data_source_id notion_pages_data_source_id cache_invalidate_secret; do
   # Convert to uppercase env var name
@@ -38,7 +36,7 @@ done
 
 echo ""
 echo "==> Deploying blog stack to Docker Swarm..."
-docker stack deploy -c docker-compose.yml -c docker-compose.prod.yml blog
+docker stack deploy --with-registry-auth -c docker-compose.yml -c docker-compose.prod.yml blog
 
 echo ""
 echo "Done. Check status with:"

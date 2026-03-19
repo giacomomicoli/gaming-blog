@@ -98,7 +98,9 @@ class NotionClient:
                     await asyncio.sleep(retry_after * (2**attempt))
                     continue
                 body = response.json()
-                raise NotionRateLimited(429, body.get("code", "rate_limited"), body.get("message", ""))
+                raise NotionRateLimited(
+                    429, body.get("code", "rate_limited"), body.get("message", "")
+                )
 
             body = response.json()
             code = body.get("code", "unknown")
