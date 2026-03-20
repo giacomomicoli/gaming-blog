@@ -9,7 +9,9 @@ services:
     env_file:
       - ../.env
     networks:
-      - blog-net
+      blog-net:
+        aliases:
+          - blog-api-internal
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s

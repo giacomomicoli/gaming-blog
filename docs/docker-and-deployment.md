@@ -41,7 +41,9 @@ All three core services are defined here. Dev and prod overlays modify them.
 - **Port**: `${BACKEND_PORT:-8000}:8000`
 - **Env**: Loaded from `../.env`
 - **Depends on**: `redis` (healthy)
-- **Network**: `blog-net`
+- **Network**: `blog-net` with alias `blog-api-internal` (avoids DNS collision with other
+  stacks that also have a `backend` service on the shared `proxy-net` overlay network — Docker
+  Swarm's embedded DNS resolves short service names across all connected networks)
 - **Health check**: `curl -f http://localhost:8000/health` — 30s interval, 5s timeout, 3 retries, 10s start period
 
 #### frontend
@@ -146,8 +148,9 @@ Middlewares (defined in frontend labels, referenced by both routers):
 - **Ports**: Removed
 - **env_file**: Removed
 - **Environment**:
-  - `BACKEND_URL=http://backend:8000` (server-side, unchanged)
-  - `NUXT_PUBLIC_BACKEND_URL=/api` (relative path — Traefik proxies `/api/*` to backend)
+  - `NUXT_BACKEND_URL=http://blog-api-internal:8000` (SSR server-side — uses the unique
+    network alias instead of the ambiguous `backend` hostname, and uses the `NUXT_` prefix
+    required by Nuxt 3 for runtime config override)
   - `NUXT_PUBLIC_SITE_URL=${NUXT_PUBLIC_SITE_URL:-https://gaming.fakejack.dev}`
 - **Networks**: Added `proxy-net` (for Traefik discovery)
 - **Deploy**: 1 replica, rolling update (parallelism 1, 10s delay), restart on-failure (max 3), memory limit 256M
@@ -185,7 +188,7 @@ Secrets are mounted at `/run/secrets/{name}` inside the container. The backend's
 
 | Network | Driver | Purpose |
 |---------|--------|---------|
-| `blog-net` | overlay | Internal: backend ↔ redis communication |
+| `blog-net` | overlay | Internal: backend ↔ frontend ↔ redis (backend aliased as `blog-api-internal`) |
 | `proxy-net` | overlay (external) | Shared: Traefik ↔ blog services |
 
 ## Caddyfile (Dev Only)
@@ -393,7 +396,8 @@ Internet
   ▼
 Traefik (shared Swarm stack, /var/www/traefik/)
   ├── opencloud.fakejack.dev  → OpenCloud (docker compose)
-  ├── gaming.fakejack.dev     → Blog (Swarm stack)
+  ├── gaming.fakejack.dev     → Gaming Blog (Swarm stack "blog")
+  ├── tech.fakejack.dev       → Tech Blog (Swarm stack "techblog")
   └── traefik-opencloud.fakejack.dev → Traefik Dashboard
 ```
 
@@ -416,4 +420,5 @@ Traefik (shared Swarm stack, /var/www/traefik/)
 | Replicas | 1 each | 1 each |
 | TLS | None | Auto via Traefik/Let's Encrypt |
 | Client API URL | `http://localhost:8000` | `/api` (relative, proxied by Traefik) |
+| SSR backend URL | `http://backend:8000` (build-time default) | `http://blog-api-internal:8000` (via `NUXT_BACKEND_URL`) |
 | Theme loading | Runtime env var | Build-time arg |
