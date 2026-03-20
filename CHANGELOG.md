@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+#### Infrastructure
+
+- Fix Docker Swarm DNS collision between blog stacks: both stacks define a `backend` service
+  on the shared `proxy-net`, causing Docker DNS round-robin between the two backends and
+  intermittent SSR 404 errors. Added `blog-api-internal` network alias on `blog-net` and
+  changed frontend SSR env from `BACKEND_URL` to `NUXT_BACKEND_URL=http://blog-api-internal:8000`
+  (Nuxt 3 only reads `NUXT_`-prefixed env vars at runtime)
+
 ## [1.0.6] - 2026-03-19
 
 ### Fixed
