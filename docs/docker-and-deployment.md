@@ -64,7 +64,6 @@ All three core services are defined here. Dev and prod overlays modify them.
 #### redis
 
 - **Image**: `redis:7-alpine`
-- **Port**: `6379:6379`
 - **Network**: `blog-net`
 - **Health check**: `redis-cli ping` — 10s interval, 3s timeout, 3 retries
 
@@ -103,6 +102,7 @@ Overrides for local development with hot reload. Adds Caddy as a local reverse p
 
 ### redis
 
+- **Port**: `${REDIS_PORT:-6379}:6379` (host access for local `redis-cli`)
 - **Command**: `redis-server --save "" --appendonly no` (in-memory only, no persistence)
 
 ### Network
@@ -132,7 +132,7 @@ Middlewares (defined in frontend labels, referenced by both routers):
 
 - **Ports**: Removed (only accessible via Traefik)
 - **env_file**: Removed (secrets used instead)
-- **Environment**: `REDIS_URL=redis://redis:6379/0`, `NOTION_API_VERSION=2025-09-03`
+- **Environment**: `NOTION_API_VERSION=2025-09-03` (Redis URL built dynamically from `redis_password` secret in `config.py`)
 - **Networks**: Added `proxy-net` (for Traefik discovery)
 - **Secrets**:
   - `notion_api_key`
@@ -140,6 +140,7 @@ Middlewares (defined in frontend labels, referenced by both routers):
   - `notion_data_source_id`
   - `notion_pages_data_source_id`
   - `cache_invalidate_secret`
+  - `redis_password`
 - **Deploy**: 1 replica, rolling update (parallelism 1, 10s delay), restart on-failure (max 3), memory limit 256M
 - **Traefik labels**: `blog-api` router on HTTPS entrypoint with TLS cert resolver
 
@@ -158,9 +159,10 @@ Middlewares (defined in frontend labels, referenced by both routers):
 
 ### redis (overrides)
 
-- **Ports**: Removed
 - **Volume**: `redis-data:/data` (persistent storage)
-- **Command**: `redis-server --appendonly yes` (AOF persistence enabled)
+- **Command**: `redis-server --appendonly yes --requirepass <secret>` (AOF persistence + password auth via Docker secret)
+- **Secrets**: `redis_password`
+- **Health check**: `REDISCLI_AUTH=$(cat /run/secrets/redis_password) redis-cli --no-auth-warning ping` — 10s interval, 3s timeout, 3 retries
 - **Deploy**: 1 replica, restart on-failure (max 3), memory limit 128M
 
 ### Secrets
@@ -174,6 +176,7 @@ All defined as `external: true` (created by `deploy.sh` before stack deployment)
 | `notion_data_source_id` | `NOTION_DATA_SOURCE_ID` |
 | `notion_pages_data_source_id` | `NOTION_PAGES_DATA_SOURCE_ID` |
 | `cache_invalidate_secret` | `CACHE_INVALIDATE_SECRET` |
+| `redis_password` | `REDIS_PASSWORD` |
 
 Secrets are mounted at `/run/secrets/{name}` inside the container. The backend's
 `config.py` reads them in `model_post_init` and they override env var values.
@@ -295,7 +298,7 @@ set -euo pipefail
 
 1. Sources `../.env` file (exits with error if missing)
 2. For each secret (`notion_api_key`, `notion_database_id`, `notion_data_source_id`,
-   `notion_pages_data_source_id`, `cache_invalidate_secret`):
+   `notion_pages_data_source_id`, `cache_invalidate_secret`, `redis_password`):
    - Converts lowercase name to uppercase env var
    - Skips with warning if value is empty
    - Removes existing secret (`docker secret rm`, ignores errors)
