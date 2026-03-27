@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.9] - 2026-03-27
+
+### Fixed
+
+#### Infrastructure
+
+- Fix Redis healthcheck in `docker-compose.prod.yml`: escape `$` as `$$` in the
+  `REDISCLI_AUTH=$(cat /run/secrets/redis_password)` shell expression so Docker Compose
+  does not attempt variable interpolation and `docker stack deploy` succeeds
+
 ## [1.0.8] - 2026-03-27
 
 ### Security
