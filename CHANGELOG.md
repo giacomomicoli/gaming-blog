@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.9] - 2026-03-27
+
+### Fixed
+
+#### Infrastructure
+
+- Fix `docker stack deploy` failing with invalid interpolation error: the v1.0.8 Redis
+  healthcheck used `$(cat /run/secrets/redis_password)` which Docker Compose treated as a
+  variable reference; escape `$` as `$$` so the shell subshell is passed through verbatim
+  (the `command:` field already used `$$` correctly)
+
 ## [1.0.8] - 2026-03-27
 
 ### Security
