@@ -74,7 +74,7 @@ services:
     secrets:
       - redis_password
     healthcheck:
-      test: ["CMD-SHELL", "REDISCLI_AUTH=$(cat /run/secrets/redis_password) redis-cli --no-auth-warning ping"]
+      test: ["CMD-SHELL", "REDISCLI_AUTH=$$(cat /run/secrets/redis_password) redis-cli --no-auth-warning ping"]
       interval: 10s
       timeout: 3s
       retries: 3
