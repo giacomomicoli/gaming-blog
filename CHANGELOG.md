@@ -13,10 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 #### Infrastructure
 
-- Fix `docker stack deploy` failing with invalid interpolation error: the v1.0.8 Redis
-  healthcheck used `$(cat /run/secrets/redis_password)` which Docker Compose treated as a
-  variable reference; escape `$` as `$$` so the shell subshell is passed through verbatim
-  (the `command:` field already used `$$` correctly)
+- Fix Redis healthcheck in `docker-compose.prod.yml`: escape `$` as `$$` in the
+  `REDISCLI_AUTH=$(cat /run/secrets/redis_password)` shell expression so Docker Compose
+  does not attempt variable interpolation and `docker stack deploy` succeeds
 
 ## [1.0.8] - 2026-03-27
 
