@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.8] - 2026-03-27
+
 ### Security
 
 #### Infrastructure
@@ -15,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   remove host port mapping from base `docker-compose.yml` (Redis only needs internal
   `blog-net` access), move port to `docker-compose.dev.yml` for local development only,
   and add `requirepass` authentication via Docker secret as defense-in-depth
+
+## [1.0.7] - 2026-03-20
 
 ### Fixed
 
