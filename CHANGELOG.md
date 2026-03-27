@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   `blog-net` access), move port to `docker-compose.dev.yml` for local development only,
   and add `requirepass` authentication via Docker secret as defense-in-depth
 
+## [1.0.7] - 2026-03-20
+
 ### Fixed
 
 #### Infrastructure
