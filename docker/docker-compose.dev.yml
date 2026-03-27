@@ -34,6 +34,8 @@ services:
     command: npx nuxt dev --host 0.0.0.0
 
   redis:
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
     command: redis-server --save "" --appendonly no
 
 networks:
