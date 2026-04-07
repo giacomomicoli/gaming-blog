@@ -37,6 +37,33 @@ def _get_plain_text(prop: dict) -> str:
     return ""
 
 
+def _get_optional_plain_text(prop: dict) -> str | None:
+    """Extract non-empty plain text from a title or rich_text property."""
+    value = _get_plain_text(prop).strip()
+    return value or None
+
+
+def _resolve_property_name(props: dict, *names: str) -> str | None:
+    """Resolve a Notion property name, tolerating case-only differences."""
+    for name in names:
+        if name in props:
+            return name
+
+    normalized_names = {name.casefold() for name in names}
+    for key in props:
+        if isinstance(key, str) and key.casefold() in normalized_names:
+            return key
+
+    return None
+
+
+def _get_property(props: dict, *names: str) -> dict:
+    """Return a Notion property dict by name, tolerating case-only differences."""
+    resolved_name = _resolve_property_name(props, *names)
+    value = props.get(resolved_name or "", {})
+    return value if isinstance(value, dict) else {}
+
+
 def _get_select(prop: dict) -> str | None:
     sel = prop.get("select")
     return sel.get("name") if sel else None
@@ -65,6 +92,10 @@ def _extract_post_meta(page: dict) -> dict:
     title = _get_plain_text(props.get("Name", {}))
     slug = _get_plain_text(props.get("Slug", {}))
     excerpt = _get_plain_text(props.get("Excerpt", {}))
+    translation_key = _get_optional_plain_text(_get_property(props, "Translation Key"))
+    meta_description = (
+        _get_optional_plain_text(props.get("Meta Description", {})) or excerpt or None
+    )
 
     return {
         "id": page.get("id", ""),
@@ -75,10 +106,81 @@ def _extract_post_meta(page: dict) -> dict:
         "tags": _get_multi_select(props.get("Tags", {})),
         "published_date": _get_date(props.get("Published Date", {})),
         "cover_image": _get_url(props.get("Cover", {})),
+        "social_image": _get_url(props.get("Social Image", {})),
         "author": _get_plain_text(props.get("Author", {})),
         "featured": _get_checkbox(props.get("Featured", {})),
         "language": _get_select(props.get("Language", {})) or settings.default_locale,
+        "translation_key": translation_key,
+        "meta_description": meta_description,
+        "last_edited_time": page.get("last_edited_time"),
     }
+
+
+def _extract_page_meta(page: dict) -> dict:
+    """Extract static page metadata from a Notion page object."""
+    props = page.get("properties", {})
+
+    return {
+        "id": page.get("id", ""),
+        "slug": _get_plain_text(props.get("Slug", {})),
+        "title": _get_plain_text(props.get("Name", {})),
+        "language": _get_select(props.get("Language", {})) or settings.default_locale,
+        "meta_description": _get_optional_plain_text(props.get("Meta Description", {})),
+        "social_image": _get_url(props.get("Social Image", {})),
+        "translation_key": _get_optional_plain_text(_get_property(props, "Translation Key")),
+        "last_edited_time": page.get("last_edited_time"),
+    }
+
+
+async def _get_post_alternates(
+    translation_key: str, translation_key_property: str = "Translation Key"
+) -> dict[str, str]:
+    """Resolve localized post slugs sharing the same translation key."""
+    db_filter = {
+        "and": [
+            {"property": "Published", "checkbox": {"equals": True}},
+            {
+                "property": translation_key_property,
+                "rich_text": {"equals": translation_key},
+            },
+        ]
+    }
+
+    alternates: dict[str, str] = {}
+    async for page_obj in notion_client.query_database(filter=db_filter):
+        meta = _extract_post_meta(page_obj)
+        lang = meta.get("language")
+        slug = meta.get("slug")
+        if lang in settings.parsed_locales and slug:
+            alternates[lang] = slug
+
+    return alternates if len(alternates) > 1 else {}
+
+
+async def _get_page_alternates(
+    translation_key: str, translation_key_property: str = "Translation Key"
+) -> dict[str, str]:
+    """Resolve localized page slugs sharing the same translation key."""
+    if not settings.notion_pages_data_source_id:
+        return {}
+
+    db_filter = {
+        "property": translation_key_property,
+        "rich_text": {"equals": translation_key},
+    }
+
+    alternates: dict[str, str] = {}
+    async for page_obj in notion_client.query_database(
+        data_source_id=settings.notion_pages_data_source_id,
+        filter=db_filter,
+    ):
+        meta = _extract_page_meta(page_obj)
+        lang = meta.get("language")
+        slug = meta.get("slug")
+        if lang in settings.parsed_locales and slug:
+            alternates[lang] = slug
+
+    return alternates if len(alternates) > 1 else {}
 
 
 def _estimate_reading_time(blocks: list[dict]) -> int:
@@ -116,7 +218,14 @@ async def list_posts(
 ):
     """List published blog posts with optional filtering."""
     lang = _validate_lang(lang)
-    cache_k = posts_list_key(lang=lang, tag=tag, category=category, featured=featured, page=page)
+    cache_k = posts_list_key(
+        lang=lang,
+        tag=tag,
+        category=category,
+        featured=featured,
+        page=page,
+        limit=limit,
+    )
     cached = await cache_get(cache_k)
     if cached:
         return cached
@@ -197,12 +306,21 @@ async def get_post(slug: str, lang: str = Query("")):
     content_html = render_blocks(blocks)
     toc = extract_toc(blocks)
     reading_time = _estimate_reading_time(blocks)
+    alternates = {}
+    translation_key_property = _resolve_property_name(
+        page_obj.get("properties", {}), "Translation Key"
+    )
+    if meta["translation_key"]:
+        alternates = await _get_post_alternates(
+            meta["translation_key"], translation_key_property or "Translation Key"
+        )
 
     result = {
         **meta,
         "content_html": content_html,
         "table_of_contents": toc,
         "reading_time": reading_time,
+        "alternates": alternates,
     }
     await cache_set(cache_k, result)
     return result
@@ -296,14 +414,21 @@ async def get_static_page(page_slug: str, lang: str = Query("")):
     except NotionNotFound:
         raise HTTPException(status_code=404, detail="Page content not found")
 
-    props = page_obj.get("properties", {})
-    title = _get_plain_text(props.get("Name", {}))
+    meta = _extract_page_meta(page_obj)
     content_html = render_blocks(blocks)
+    alternates = {}
+    translation_key_property = _resolve_property_name(
+        page_obj.get("properties", {}), "Translation Key"
+    )
+    if meta["translation_key"]:
+        alternates = await _get_page_alternates(
+            meta["translation_key"], translation_key_property or "Translation Key"
+        )
 
     result = {
-        "slug": page_slug,
-        "title": title,
+        **meta,
         "content_html": content_html,
+        "alternates": alternates,
     }
     await cache_set(cache_k, result)
     return result

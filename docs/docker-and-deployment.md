@@ -282,8 +282,8 @@ Configure these in the repository settings before the first deploy:
 | Secret | Value |
 |--------|-------|
 | `VPS_SSH_KEY` | SSH private key for the VPS |
-| `VPS_HOST` | VPS IP address (`91.99.20.92`) |
-| `VPS_USER` | SSH user (`fakejack`) |
+| `VPS_HOST` | VPS hostname or IP address |
+| `VPS_USER` | SSH user |
 
 `GITHUB_TOKEN` is provided automatically by GitHub Actions — no PAT required.
 
@@ -398,14 +398,14 @@ Internet
   │
   ▼
 Traefik (shared Swarm stack, /var/www/traefik/)
-  ├── opencloud.fakejack.dev  → OpenCloud (docker compose)
+  ├── app-one.example.com     → Compose-based app
   ├── gaming.fakejack.dev     → Gaming Blog (Swarm stack "blog")
-  ├── tech.fakejack.dev       → Tech Blog (Swarm stack "techblog")
-  └── traefik-opencloud.fakejack.dev → Traefik Dashboard
+  ├── app-two.example.com     → Additional Swarm app
+  └── traefik.example.com     → Traefik Dashboard
 ```
 
 - **Traefik** uses both `providers.swarm` (for Swarm stacks) and `providers.docker` (for
-  compose containers like OpenCloud) with `exposedByDefault=false`.
+  compose containers integrated into the same host) with `exposedByDefault=false`.
 - **proxy-net**: Shared overlay network (attachable) connecting Traefik to all services.
 - Each project manages its own internal network for inter-service communication.
 - TLS certificates are automatically obtained via Let's Encrypt (ACME HTTP challenge).

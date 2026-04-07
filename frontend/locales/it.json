@@ -7,6 +7,9 @@
     "noCategories": "Nessuna categoria"
   },
   "home": {
+    "featuredPosts": "Articoli in evidenza",
+    "featuredNavigation": "Navigazione articoli in evidenza",
+    "goToSlide": "Vai alla slide {index}: {title}",
     "latestPosts": "Ultimi Articoli",
     "loading": "Caricamento articoli...",
     "noPosts": "Nessun articolo pubblicato."

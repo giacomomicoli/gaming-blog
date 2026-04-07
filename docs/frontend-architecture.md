@@ -8,7 +8,7 @@
 
 ```
 frontend/
-├── app.vue                      # Root: NuxtLoadingIndicator + NuxtLayout + NuxtPage
+├── app.vue                      # Root: NuxtLoadingIndicator + NuxtLayout + NuxtPage + site-wide WebSite JSON-LD
 ├── nuxt.config.ts               # SSR, theme loading, i18n, runtime config, transitions, meta
 ├── locales/
 │   ├── it.json                  # Italian UI translations
@@ -31,11 +31,13 @@ frontend/
 │       ├── about-blog.vue       # Static "About This Blog" page
 │       └── about-me.vue         # Static "About Me" page
 ├── composables/
-│   └── useApi.ts                # API client with server/client URL switching
+│   ├── useApi.ts                # API client with server/client URL switching
+│   └── useSeo.ts                # Shared canonical/meta/JSON-LD helpers
 ├── types/
 │   └── blog.ts                  # TypeScript interfaces: Post, TocEntry, PostList
 ├── server/routes/
 │   ├── rss.xml.ts               # RSS 2.0 feed generation
+│   ├── robots.txt.ts            # Runtime robots.txt generation
 │   └── sitemap.xml.ts           # XML sitemap generation
 ├── assets/
 │   ├── css/
@@ -45,7 +47,7 @@ frontend/
 │       ├── yarb-dark/theme.css  # Dark theme (default)
 │       └── yarb-light/theme.css # Light theme
 ├── public/
-│   └── robots.txt               # Crawl rules + sitemap reference
+│   └── social/default-social-card.png  # Repo-level fallback share image
 ├── tests/components/
 │   ├── PostCard.test.ts
 │   ├── PostMeta.test.ts
@@ -197,7 +199,7 @@ Featured posts carousel/slider.
 
 **Props**: `{ posts: Post[] }`
 
-**Features**: Horizontal scroll snap, background cover images with dark gradient overlay,
+**Features**: Horizontal scroll snap, real `<img>` cover images with dark gradient overlay,
 auto-advance every 6 seconds (respects `prefers-reduced-motion`), dot navigation.
 
 **Hardcoded colors**: White text (`#fff`), overlay gradient (`rgba(0,0,0,0.75)` to transparent),
@@ -242,15 +244,17 @@ Redirects to `/{defaultLocale}` using `navigateTo()`.
 Fetches featured posts (limit 5) and latest posts (paginated, default limit 10) for the current locale.
 Shows `HeroCarousel` if featured posts exist. Post grid below with Previous/Next pagination.
 
-SEO: Title overridden to "No Hype, Just Vibe" (no template suffix).
+SEO: Title overridden to "No Hype, Just Vibe" (no template suffix), canonical tag,
+full Open Graph/Twitter metadata, `CollectionPage` JSON-LD, and `BreadcrumbList` JSON-LD.
 
 ### [lang]/blog/[slug].vue (Post Detail)
 
 Fetches single post by slug for the current locale. Shows back link, title (h1), `PostMeta`, optional cover image,
 rendered HTML content (`v-html` in `.notion-content` div), and `TableOfContents` sidebar.
 
-SEO: Title is post title. OG tags include title, description, image, type `article`.
-Twitter card is `summary_large_image`.
+SEO: Title is post title. Canonical URL, `hreflang` alternates (when `Translation Key`
+data exists), Open Graph/Twitter metadata, `BlogPosting` JSON-LD, and `BreadcrumbList`
+JSON-LD are rendered server-side. Twitter card is `summary_large_image`.
 
 Layout: Single column on mobile/tablet. Two-column grid (`1fr 240px`) at 1024px+ with
 sticky TOC sidebar.
@@ -265,7 +269,8 @@ All API calls include the current locale.
 ### [lang]/about-blog.vue and [lang]/about-me.vue
 
 Static pages fetched from `/api/pages/about-blog?lang={lang}` and `/api/pages/about-me?lang={lang}`.
-Render title + HTML content. 404 if not found.
+Render title + HTML content. 404 if not found. SEO includes canonical URL, social metadata,
+`AboutPage` JSON-LD, and breadcrumb markup.
 
 ## Composable: useApi.ts
 
@@ -282,7 +287,7 @@ Central API client. Uses `useRuntimeConfig()` to determine base URL:
 | `getPost(lang, slug)` | `GET /api/posts/{slug}?lang={lang}` | `Post` |
 | `getCategories(lang)` | `GET /api/categories?lang={lang}` | `string[]` |
 | `getTags(lang)` | `GET /api/tags?lang={lang}` | `string[]` |
-| `getPage(lang, slug)` | `GET /api/pages/{slug}?lang={lang}` | `{ slug, title, content_html }` |
+| `getPage(lang, slug)` | `GET /api/pages/{slug}?lang={lang}` | `StaticPage` |
 
 Uses Nuxt's `$fetch` utility internally.
 
@@ -293,7 +298,10 @@ interface Post {
     id: string; slug: string; title: string; excerpt: string;
     category: string | null; tags: string[];
     published_date: string | null; cover_image: string | null;
+    social_image?: string | null;
     author: string; featured?: boolean; language: string;
+    translation_key?: string | null; meta_description?: string | null;
+    last_edited_time?: string | null; alternates?: Record<string, string>;
     reading_time?: number; content_html?: string;
     table_of_contents?: TocEntry[];
 }
@@ -304,6 +312,13 @@ interface TocEntry {
 
 interface PostList {
     posts: Post[]; total: number; page: number; has_more: boolean;
+}
+
+interface StaticPage {
+    id: string; slug: string; title: string; language: string;
+    meta_description?: string | null; social_image?: string | null;
+    translation_key?: string | null; last_edited_time?: string | null;
+    alternates?: Record<string, string>; content_html: string;
 }
 ```
 
@@ -400,8 +415,15 @@ Channel title: "No Hype, Just Vibe". Content-Type: `application/rss+xml; charset
 
 ### Sitemap (`/sitemap.xml`)
 
-Generates URLs for all locales. Static pages include `xhtml:link` hreflang alternates.
-Paginates through all posts per locale (limit 50 per request). Priorities: homepage 1.0, about pages 0.6, posts 0.8.
+Generates URLs for all locales. Static pages include `xhtml:link` hreflang alternates when
+translation mappings exist. Uses backend `last_edited_time` / `published_date` for `lastmod`.
+Paginates through all posts per locale (limit 50 per request). Priorities: homepage 1.0,
+about-blog 0.7, about-me 0.6, posts 0.8.
+
+### Robots (`/robots.txt`)
+
+Generated at runtime from `siteUrl` so the sitemap reference stays correct across local,
+staging, and production environments.
 Content-Type: `application/xml; charset=utf-8`.
 
 ## Date Formatting
@@ -415,23 +437,12 @@ The `locale.value` comes from `useI18n()` and matches the current URL prefix loc
 
 ## SEO / Meta Patterns
 
-```typescript
-// Homepage: override template to show bare title
-useHead({ title: 'No Hype, Just Vibe', titleTemplate: '' })
+SEO metadata is centralized in `useSeo.ts`.
 
-// Subpages: just set title (template adds " | No Hype, Just Vibe")
-useHead({ title: post.value?.title })
-
-// Post pages: full OG/Twitter meta
-useSeoMeta({
-    description: post.value?.excerpt,
-    ogTitle: `${post.value.title} | No Hype, Just Vibe`,
-    ogDescription: post.value?.excerpt,
-    ogImage: post.value?.cover_image,
-    ogType: 'article',
-    twitterCard: 'summary_large_image',
-})
-```
+- Canonical URLs are emitted on all indexable pages.
+- `max-image-preview:large` is applied through the page-level robots meta tag.
+- `og:image` / `twitter:image` fall back from page-specific image -> post cover -> repo default social card.
+- `application/ld+json` is emitted server-side for `WebSite`, `BlogPosting`, `CollectionPage`, `WebPage` / `AboutPage`, and `BreadcrumbList`.
 
 ## i18n (Frontend)
 
