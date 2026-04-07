@@ -42,15 +42,23 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <section class="hero" aria-label="Featured posts">
+  <section class="hero" :aria-label="t('home.featuredPosts')">
     <div ref="trackRef" class="hero-track" @scroll.passive="handleScroll">
       <article
         v-for="(post, i) in posts"
         :key="post.id"
         class="hero-slide"
-        :style="post.cover_image ? { backgroundImage: `url(${post.cover_image})` } : undefined"
         :aria-hidden="i !== currentIndex"
       >
+        <img
+          v-if="post.cover_image"
+          class="hero-image"
+          :src="post.cover_image"
+          :alt="post.title"
+          :loading="i === 0 ? 'eager' : 'lazy'"
+          :fetchpriority="i === 0 ? 'high' : 'auto'"
+          decoding="async"
+        >
         <div class="hero-overlay" />
         <div class="hero-content">
           <h2 class="hero-title">
@@ -64,13 +72,13 @@ onUnmounted(() => {
       </article>
     </div>
 
-    <nav v-if="posts.length > 1" class="hero-dots" role="tablist" aria-label="Slide navigation">
+    <nav v-if="posts.length > 1" class="hero-dots" role="tablist" :aria-label="t('home.featuredNavigation')">
       <button
         v-for="(post, i) in posts"
         :key="post.id"
         role="tab"
         :aria-selected="i === currentIndex"
-        :aria-label="`Go to slide ${i + 1}: ${post.title}`"
+        :aria-label="t('home.goToSlide', { index: i + 1, title: post.title })"
         :class="['hero-dot', { active: i === currentIndex }]"
         @click="goToSlide(i)"
       />
@@ -106,11 +114,17 @@ onUnmounted(() => {
   flex: 0 0 100%;
   scroll-snap-align: start;
   position: relative;
-  background-size: cover;
-  background-position: center;
   background-color: var(--surface-color);
   display: flex;
   align-items: flex-end;
+}
+
+.hero-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .hero-overlay {

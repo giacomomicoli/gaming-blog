@@ -7,6 +7,9 @@
     "noCategories": "No categories yet"
   },
   "home": {
+    "featuredPosts": "Featured posts",
+    "featuredNavigation": "Featured posts navigation",
+    "goToSlide": "Go to slide {index}: {title}",
     "latestPosts": "Latest Posts",
     "loading": "Loading posts...",
     "noPosts": "No posts published yet."
