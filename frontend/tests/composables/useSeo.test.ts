@@ -2,11 +2,19 @@ import { describe, expect, it } from 'vitest'
 import { mountSuspended } from '@nuxt/test-utils/runtime'
 import { defineComponent } from 'vue'
 
+type TestGlobals = {
+  __testHead?: ReturnType<typeof injectHead>
+  __siteUrl?: string
+}
+
 const TestSeoComponent = defineComponent({
   setup() {
     const { applySeo } = useSeo()
     const head = injectHead()
-    ;(globalThis as { __testHead?: ReturnType<typeof injectHead> }).__testHead = head
+    const config = useRuntimeConfig()
+
+    ;(globalThis as TestGlobals).__testHead = head
+    ;(globalThis as TestGlobals).__siteUrl = config.public.siteUrl
 
     applySeo(() => ({
       title: 'SEO Test Post',
@@ -36,18 +44,20 @@ describe('useSeo', () => {
   it('resolves article SEO tags through Unhead', async () => {
     await mountSuspended(TestSeoComponent)
 
-    const head = (globalThis as { __testHead?: ReturnType<typeof injectHead> }).__testHead
+    const globals = globalThis as TestGlobals
+    const head = globals.__testHead
+    const siteUrl = (globals.__siteUrl || 'http://localhost:3000').replace(/\/+$/, '')
     const tags = await head?.resolveTags()
 
     expect(tags).toBeDefined()
 
     expect(findTag(tags || [], 'title', tag => tag.textContent === 'SEO Test Post')).toBeDefined()
-    expect(findTag(tags || [], 'link', tag => tag.props?.rel === 'canonical' && tag.props?.href === 'https://gaming.fakejack.dev/it/blog/seo-test-post')).toBeDefined()
+    expect(findTag(tags || [], 'link', tag => tag.props?.rel === 'canonical' && tag.props?.href === `${siteUrl}/it/blog/seo-test-post`)).toBeDefined()
     expect(findTag(tags || [], 'meta', tag => tag.props?.name === 'description' && tag.props?.content === 'SEO test description')).toBeDefined()
     expect(findTag(tags || [], 'meta', tag => tag.props?.name === 'robots' && tag.props?.content === 'index,follow,max-image-preview:large')).toBeDefined()
     expect(findTag(tags || [], 'meta', tag => tag.props?.property === 'og:title' && tag.props?.content === 'SEO Test Post | No Hype, Just Vibe')).toBeDefined()
     expect(findTag(tags || [], 'meta', tag => tag.props?.property === 'og:description' && tag.props?.content === 'SEO test description')).toBeDefined()
-    expect(findTag(tags || [], 'meta', tag => tag.props?.property === 'og:url' && tag.props?.content === 'https://gaming.fakejack.dev/it/blog/seo-test-post')).toBeDefined()
+    expect(findTag(tags || [], 'meta', tag => tag.props?.property === 'og:url' && tag.props?.content === `${siteUrl}/it/blog/seo-test-post`)).toBeDefined()
     expect(findTag(tags || [], 'meta', tag => tag.props?.property === 'og:type' && tag.props?.content === 'article')).toBeDefined()
     expect(findTag(tags || [], 'meta', tag => tag.props?.property === 'og:image' && tag.props?.content === 'https://example.com/social-card.jpg')).toBeDefined()
     expect(findTag(tags || [], 'meta', tag => tag.props?.name === 'twitter:card' && tag.props?.content === 'summary_large_image')).toBeDefined()
