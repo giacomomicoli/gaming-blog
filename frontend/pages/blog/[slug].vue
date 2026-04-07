@@ -1,10 +1,16 @@
 <script setup lang="ts">
 const route = useRoute()
-const { locale } = useI18n()
-const { t } = useI18n()
+const { locale, t } = useI18n()
 const localePath = useLocalePath()
 const slug = computed(() => route.params.slug as string)
 const { getPost } = useApi()
+const {
+  applySeo,
+  addStructuredData,
+  buildBlogPostingSchema,
+  buildBreadcrumbSchema,
+  defaultSocialImage,
+} = useSeo()
 
 const { data: post, error } = await useAsyncData(`post-${locale.value}-${slug.value}`, () => getPost(locale.value, slug.value), {
   watch: [locale, slug],
@@ -14,17 +20,48 @@ if (error.value) {
   throw createError({ statusCode: 404, statusMessage: t('post.notFound') })
 }
 
-useHead({ title: post.value?.title })
+const postPath = computed(() => `/${locale.value}/blog/${slug.value}`)
+const postImage = computed(() => post.value?.social_image || post.value?.cover_image || defaultSocialImage)
+const postDescription = computed(() => post.value?.meta_description || post.value?.excerpt)
+const postAlternates = computed(() => {
+  const alternates = post.value?.alternates || {}
 
-useSeoMeta({
-  description: post.value?.excerpt,
-  ogTitle: post.value?.title ? `${post.value.title} | No Hype, Just Vibe` : 'No Hype, Just Vibe',
-  ogDescription: post.value?.excerpt,
-  ogImage: post.value?.cover_image || undefined,
-  ogType: 'article',
-  twitterCard: 'summary_large_image',
-  ogLocale: locale.value,
+  return Object.fromEntries(
+    Object.entries(alternates).map(([lang, alternateSlug]) => [lang, `/${lang}/blog/${alternateSlug}`]),
+  )
 })
+
+applySeo(() => ({
+  title: post.value?.title || 'No Hype, Just Vibe',
+  description: postDescription.value,
+  path: postPath.value,
+  image: postImage.value,
+  imageAlt: post.value?.title,
+  type: 'article',
+  alternates: Object.keys(postAlternates.value).length ? postAlternates.value : undefined,
+  publishedTime: post.value?.published_date,
+  modifiedTime: post.value?.last_edited_time || post.value?.published_date,
+  tags: post.value?.tags,
+}))
+
+addStructuredData(() => ([
+  buildBlogPostingSchema({
+    title: post.value?.title || 'No Hype, Just Vibe',
+    description: postDescription.value,
+    path: postPath.value,
+    image: postImage.value,
+    author: post.value?.author,
+    publishedTime: post.value?.published_date,
+    modifiedTime: post.value?.last_edited_time || post.value?.published_date,
+    category: post.value?.category,
+    tags: post.value?.tags,
+  }),
+  buildBreadcrumbSchema([
+    { name: 'No Hype, Just Vibe', path: `/${locale.value}` },
+    { name: post.value?.category || t('category.breadcrumb'), path: `/${locale.value}` },
+    { name: post.value?.title || 'Post', path: postPath.value },
+  ]),
+]), 'blog-post')
 </script>
 
 <template>
@@ -37,7 +74,7 @@ useSeoMeta({
     </header>
 
     <figure v-if="post.cover_image" class="post-hero">
-      <img :src="post.cover_image" :alt="post.title" />
+      <img :src="post.cover_image" :alt="post.title" loading="eager" fetchpriority="high" decoding="async" />
     </figure>
 
     <div class="post-layout">

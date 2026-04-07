@@ -1,7 +1,7 @@
 <script setup lang="ts">
-const { locale } = useI18n()
-const { t } = useI18n()
+const { locale, t } = useI18n()
 const { getPosts, getFeaturedPosts } = useApi()
+const { applySeo, addStructuredData, buildBreadcrumbSchema, buildCollectionPageSchema, defaultSocialImage } = useSeo()
 const page = ref(1)
 
 const { data, status } = await useAsyncData(`posts-${locale.value}`, () => getPosts(locale.value, { page: page.value }), {
@@ -12,7 +12,43 @@ const { data: featuredData } = await useAsyncData(`featured-posts-${locale.value
   watch: [locale],
 })
 
-useHead({ title: 'No Hype, Just Vibe', titleTemplate: '' })
+const pageTitle = 'No Hype, Just Vibe'
+const pageDescription = computed(() => {
+  if (featuredData.value?.posts?.[0]?.excerpt) {
+    return featuredData.value.posts[0].excerpt
+  }
+
+  return locale.value === 'it'
+    ? 'Recensioni, cultura gaming e articoli selezionati con un tono editoriale pulito e leggibile.'
+    : 'Reviews, gaming culture, and curated articles with a clean editorial voice.'
+})
+
+const homepageAlternates = computed(() => ({
+  it: '/it',
+  en: '/en',
+}))
+
+applySeo(() => ({
+  title: pageTitle,
+  description: pageDescription.value,
+  path: `/${locale.value}`,
+  image: featuredData.value?.posts?.[0]?.social_image || featuredData.value?.posts?.[0]?.cover_image || defaultSocialImage,
+  imageAlt: pageTitle,
+  noTemplate: true,
+  alternates: homepageAlternates.value,
+}))
+
+addStructuredData(() => ([
+  buildCollectionPageSchema({
+    name: pageTitle,
+    description: pageDescription.value,
+    path: `/${locale.value}`,
+    image: featuredData.value?.posts?.[0]?.social_image || featuredData.value?.posts?.[0]?.cover_image || defaultSocialImage,
+  }),
+  buildBreadcrumbSchema([
+    { name: pageTitle, path: `/${locale.value}` },
+  ]),
+]), 'homepage')
 
 function nextPage() {
   if (data.value?.has_more) page.value++
@@ -25,6 +61,7 @@ function prevPage() {
 
 <template>
   <div>
+    <h1 class="page-title">{{ pageTitle }}</h1>
     <HeroCarousel v-if="featuredData?.posts.length" :posts="featuredData.posts" />
 
     <h2 class="section-title">{{ t('home.latestPosts') }}</h2>
@@ -50,8 +87,19 @@ function prevPage() {
 </template>
 
 <style scoped>
+.page-title {
+  margin: 0 0 var(--space-sm);
+  font-size: var(--font-size-2xl);
+}
+
 .section-title {
   margin: 0 0 var(--space-lg);
+}
+
+@media screen and (min-width: 768px) {
+  .page-title {
+    font-size: var(--font-size-3xl);
+  }
 }
 
 .post-grid {
