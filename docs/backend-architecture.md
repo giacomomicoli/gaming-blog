@@ -169,7 +169,26 @@ These functions extract typed values from Notion page property objects:
     "id": str, "slug": str, "title": str, "excerpt": str,
     "category": str | None, "tags": list[str],
     "published_date": str | None, "cover_image": str | None,
-    "author": str, "featured": bool, "language": str
+    "social_image": str | None,
+    "author": str, "featured": bool, "language": str,
+    "translation_key": str | None,
+    "meta_description": str | None,
+    "last_edited_time": str | None,
+}
+```
+
+Static pages expose a similar metadata shape via `_extract_page_meta(page)`:
+
+```python
+{
+    "id": str,
+    "slug": str,
+    "title": str,
+    "language": str,
+    "meta_description": str | None,
+    "social_image": str | None,
+    "translation_key": str | None,
+    "last_edited_time": str | None,
 }
 ```
 
@@ -198,7 +217,8 @@ Response:
 Queries database with `Published=true AND Slug={slug} AND Language={lang}`. Fetches blocks, renders HTML,
 extracts TOC, estimates reading time. Accepts `lang` query parameter.
 
-Response: post metadata + `content_html`, `table_of_contents`, `reading_time`.
+Response: post metadata + `content_html`, `table_of_contents`, `reading_time`, and
+optional `alternates` mapping when localized equivalents share the same `Translation Key`.
 
 404 if slug not found or blocks not accessible.
 
@@ -223,7 +243,18 @@ blocks are not accessible.
 
 Response:
 ```json
-{ "slug": "about-blog", "title": "About This Blog", "content_html": "<p>...</p>" }
+{
+    "id": "page-id",
+    "slug": "about-blog",
+    "title": "About This Blog",
+    "language": "it",
+    "meta_description": "...",
+    "social_image": "https://...",
+    "translation_key": "about-blog",
+    "last_edited_time": "2026-02-05T10:00:00.000Z",
+    "alternates": { "it": "about-blog", "en": "about-blog" },
+    "content_html": "<p>...</p>"
+}
 ```
 
 ## Cache Layer (`cache.py`)
@@ -238,7 +269,7 @@ All keys prefixed with `blog:` and include the language code:
 
 | Function | Pattern | Example |
 |----------|---------|---------|
-| `posts_list_key(lang, tag?, category?, featured?, page)` | `blog:{lang}:posts:{suffix}:{page}` | `blog:it:posts:all:1`, `blog:en:posts:tag:python:1` |
+| `posts_list_key(lang, tag?, category?, featured?, page, limit)` | `blog:{lang}:posts:{suffix}:{page}:{limit}` | `blog:it:posts:all:1:10`, `blog:en:posts:tag:python:1:10` |
 | `post_key(lang, slug)` | `blog:{lang}:posts:{slug}` | `blog:it:posts:hello-world` |
 | `page_key(lang, slug)` | `blog:{lang}:page:{slug}` | `blog:it:page:about-blog` |
 | `categories_key(lang)` | `blog:{lang}:categories` | `blog:it:categories` |

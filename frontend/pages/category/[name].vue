@@ -1,10 +1,10 @@
 <script setup lang="ts">
 const route = useRoute()
-const { locale } = useI18n()
-const { t } = useI18n()
+const { locale, t } = useI18n()
 const localePath = useLocalePath()
 const category = computed(() => route.params.name as string)
 const { getPosts } = useApi()
+const { applySeo, addStructuredData, buildBreadcrumbSchema, buildCollectionPageSchema, defaultSocialImage } = useSeo()
 const page = ref(1)
 
 const { data, status } = await useAsyncData(
@@ -13,7 +13,34 @@ const { data, status } = await useAsyncData(
   { watch: [page, locale, category] },
 )
 
-useHead({ title: category.value })
+const pageTitle = computed(() => category.value)
+const pageDescription = computed(() => {
+  return locale.value === 'it'
+    ? `Articoli e approfondimenti nella categoria ${category.value}.`
+    : `Articles and features in the ${category.value} category.`
+})
+const pagePath = computed(() => `/${locale.value}/category/${category.value}`)
+
+applySeo(() => ({
+  title: pageTitle.value,
+  description: pageDescription.value,
+  path: pagePath.value,
+  image: data.value?.posts?.[0]?.social_image || data.value?.posts?.[0]?.cover_image || defaultSocialImage,
+  imageAlt: pageTitle.value,
+}))
+
+addStructuredData(() => ([
+  buildCollectionPageSchema({
+    name: pageTitle.value,
+    description: pageDescription.value,
+    path: pagePath.value,
+    image: data.value?.posts?.[0]?.social_image || data.value?.posts?.[0]?.cover_image || defaultSocialImage,
+  }),
+  buildBreadcrumbSchema([
+    { name: 'No Hype, Just Vibe', path: `/${locale.value}` },
+    { name: pageTitle.value, path: pagePath.value },
+  ]),
+]), 'category')
 </script>
 
 <template>
