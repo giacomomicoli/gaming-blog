@@ -54,6 +54,7 @@ export default defineNuxtConfig({
       titleTemplate: '%s | No Hype, Just Vibe',
       meta: [
         { name: 'description', content: 'No Hype, Just Vibe — A blog powered by Notion' },
+        { name: 'google-site-verification', content: 'wumxo5kVifwgIAumsygw_Qqu8Y2LQPuV7KKCgTczF6w' },
       ],
       link: [
         { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
