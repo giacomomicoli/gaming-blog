@@ -7,6 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-04-13
+
+### Fixed
+
+#### Frontend
+
+- Added the Google Search Console site verification meta tag to the global Nuxt head
+  configuration
+
+## [1.1.0] - 2026-04-07
+
+### Added
+
+#### Backend
+
+- Exposed SEO-focused Notion metadata for posts and static pages, including translation keys,
+  social images, edited timestamps, and localized alternates
+
+#### Frontend
+
+- Added a shared SEO foundation for canonical URLs, Open Graph, Twitter cards, JSON-LD, and
+  localized alternates across homepage, posts, category pages, tag pages, and static pages
+- Added runtime `robots.txt` generation and fresher sitemap metadata for improved crawler
+  support
+- Added frontend SEO coverage for canonical and metadata rendering
+
+#### Documentation
+
+- Added the Notion SEO manual setup guide covering the editorial backfill required for posts
+  and static pages
+
+### Changed
+
+#### Frontend
+
+- Applied the centralized SEO metadata layer across the site and updated client-side API and
+  UI tests to validate the environment-aware output
+
+#### Documentation
+
+- Hardened public-facing deployment documentation by removing environment-specific
+  infrastructure details
+
 ## [1.0.9] - 2026-03-27
 
 ### Fixed
